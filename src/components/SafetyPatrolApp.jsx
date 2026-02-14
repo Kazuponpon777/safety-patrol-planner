@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { parseCSV } from '../utils/csvParser';
 import { generateFiscalYearSchedule, getDayOfWeek, assignOfficersToSchedule } from '../utils/scheduleGenerator';
-import { Upload, Calendar, User, Download, FolderOpen } from 'lucide-react';
+import { Upload, Calendar, User, Download, FolderOpen, Search, Undo2, Redo2, ChevronDown } from 'lucide-react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import DraggableMember from './DraggableMember';
@@ -12,6 +12,52 @@ import { initialMembers } from '../data/initialMembers';
 import '../styles/App.css';
 import '../styles/Print.css';
 
+const STORAGE_KEY = 'safety-patrol-planner';
+const MAX_MEMBERS_PER_MONTH = 5;
+const MAX_HISTORY = 30;
+
+// --- Custom hook for undo/redo ---
+function useUndoRedo() {
+    const [history, setHistory] = useState([]);
+    const [future, setFuture] = useState([]);
+    const isUndoRedoRef = useRef(false);
+
+    const pushState = useCallback((state) => {
+        if (isUndoRedoRef.current) {
+            isUndoRedoRef.current = false;
+            return;
+        }
+        setHistory(prev => {
+            const next = [...prev, state];
+            if (next.length > MAX_HISTORY) next.shift();
+            return next;
+        });
+        setFuture([]);
+    }, []);
+
+    const undo = useCallback(() => {
+        if (history.length < 2) return null;
+        const prev = history[history.length - 2];
+        const current = history[history.length - 1];
+        setHistory(h => h.slice(0, -1));
+        setFuture(f => [current, ...f]);
+        isUndoRedoRef.current = true;
+        return prev;
+    }, [history]);
+
+    const redo = useCallback(() => {
+        if (future.length === 0) return null;
+        const next = future[0];
+        setFuture(f => f.slice(1));
+        setHistory(h => [...h, next]);
+        isUndoRedoRef.current = true;
+        return next;
+    }, [future]);
+
+    return { pushState, undo, redo, canUndo: history.length >= 2, canRedo: future.length > 0 };
+}
+
+
 const SafetyPatrolApp = () => {
     const [fiscalYear, setFiscalYear] = useState(2026);
     const [schedule, setSchedule] = useState([]);
@@ -20,34 +66,143 @@ const SafetyPatrolApp = () => {
     const [unassignedOfficers, setUnassignedOfficers] = useState([]);
     const [generalMembers, setGeneralMembers] = useState([]);
     const [isDragging, setIsDragging] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [isInitialized, setIsInitialized] = useState(false);
 
-    // Initial Schedule Generation & Data Loading
+    const { pushState, undo, redo, canUndo, canRedo } = useUndoRedo();
+
+    // --- Snapshot helper for undo ---
+    const getSnapshot = useCallback(() => ({
+        schedule, unassignedOfficers, generalMembers,
+    }), [schedule, unassignedOfficers, generalMembers]);
+
+    const applySnapshot = useCallback((snap) => {
+        setSchedule(snap.schedule);
+        setUnassignedOfficers(snap.unassignedOfficers);
+        setGeneralMembers(snap.generalMembers);
+    }, []);
+
+    // Push snapshot whenever schedule or assignments change (after init)
     useEffect(() => {
-        const newSchedule = generateFiscalYearSchedule(fiscalYear);
+        if (isInitialized && schedule.length > 0) {
+            pushState(getSnapshot());
+        }
+    }, [schedule, unassignedOfficers, generalMembers]);
 
-        // Load embedded data initially
-        if (members.length === 0 && initialMembers && initialMembers.length > 0) {
+    // --- Undo / Redo handlers ---
+    const handleUndo = () => {
+        const prev = undo();
+        if (prev) applySnapshot(prev);
+    };
+
+    const handleRedo = () => {
+        const next = redo();
+        if (next) applySnapshot(next);
+    };
+
+    // Keyboard shortcuts for undo/redo
+    useEffect(() => {
+        const handler = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+                e.preventDefault();
+                if (e.shiftKey) handleRedo();
+                else handleUndo();
+            }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'y') {
+                e.preventDefault();
+                handleRedo();
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [canUndo, canRedo, undo, redo]);
+
+    // --- Auto-save to LocalStorage ---
+    useEffect(() => {
+        if (!isInitialized || members.length === 0) return;
+        const saveData = {
+            fiscalYear,
+            schedule,
+            unassignedOfficers,
+            generalMembers,
+            members,
+            officers,
+        };
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+        } catch (e) {
+            console.warn('Auto-save failed:', e);
+        }
+    }, [fiscalYear, schedule, unassignedOfficers, generalMembers, members, officers, isInitialized]);
+
+    // --- Load from LocalStorage or initialMembers ---
+    useEffect(() => {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                if (data.schedule && data.schedule.length > 0) {
+                    setFiscalYear(data.fiscalYear || 2026);
+                    setSchedule(data.schedule);
+                    setMembers(data.members || []);
+                    setOfficers(data.officers || []);
+                    setUnassignedOfficers(data.unassignedOfficers || []);
+                    setGeneralMembers(data.generalMembers || []);
+                    setIsInitialized(true);
+                    return;
+                }
+            } catch (e) {
+                console.warn('Failed to load saved data:', e);
+            }
+        }
+
+        // Fall back to initial data
+        if (initialMembers && initialMembers.length > 0) {
             const data = initialMembers;
             setMembers(data);
-
             const newOfficers = data.filter(m => m.type === 'officer');
             const newGeneral = data.filter(m => m.type === 'general');
-
             setOfficers(newOfficers);
             setGeneralMembers(newGeneral);
-            // Initially all officers are unassigned
             setUnassignedOfficers([...newOfficers]);
-            setSchedule(newSchedule);
-        } else {
-            setSchedule(newSchedule);
+            setSchedule(generateFiscalYearSchedule(2026));
         }
-    }, [fiscalYear]);
+        setIsInitialized(true);
+    }, []);
+
+    // --- Fiscal year change (only when user changes it, not on first load) ---
+    const handleFiscalYearChange = (newYear) => {
+        const confirmChange = window.confirm(
+            `年度を${newYear}に変更しますか？\n割り当て状況はクリアされます。`
+        );
+        if (!confirmChange) return;
+
+        setFiscalYear(newYear);
+        const newSchedule = generateFiscalYearSchedule(newYear);
+        setSchedule(newSchedule);
+
+        // Reset assignments
+        const allOfficers = members.filter(m => m.type === 'officer');
+        const allGeneral = members.filter(m => m.type === 'general');
+        setUnassignedOfficers([...allOfficers]);
+        setGeneralMembers([...allGeneral]);
+    };
 
     const handleDateChange = (monthId, newDate) => {
         setSchedule(prev => prev.map(slot => {
             if (slot.monthId === monthId) {
                 const day = getDayOfWeek(newDate);
                 return { ...slot, date: newDate, dayOfWeek: day };
+            }
+            return slot;
+        }));
+    };
+
+    // --- Note change handler ---
+    const handleNoteChange = (monthId, note) => {
+        setSchedule(prev => prev.map(slot => {
+            if (slot.monthId === monthId) {
+                return { ...slot, note };
             }
             return slot;
         }));
@@ -81,38 +236,30 @@ const SafetyPatrolApp = () => {
 
         setSchedule(prev => prev.map(slot => {
             if (slot.monthId === targetMonthId) {
-                // If same officer is already assigned here, do nothing
                 if (slot.officer && slot.officer.id === member.id) return slot;
-
-                // If there was already an officer here, return them to the unassigned list
                 const previousOfficer = slot.officer;
                 if (previousOfficer) {
-                    // We need to add the displaced officer back to unassigned
-                    // Since we can't call setUnassignedOfficers inside setSchedule safely,
-                    // we'll handle it outside
+                    // handled below
                 }
                 return { ...slot, officer: member };
             }
-            // If source was another calendar slot, remove from there
             if (source === 'officer-slot' && slot.monthId === sourceMonthId) {
                 return { ...slot, officer: null };
             }
             return slot;
         }));
 
-        // Handle displaced officer (the one who was in the target slot before)
+        // Handle displaced officer
         const targetSlot = schedule.find(s => s.monthId === targetMonthId);
         if (targetSlot && targetSlot.officer && targetSlot.officer.id !== member.id) {
             setUnassignedOfficers(prev => [...prev, targetSlot.officer]);
         }
 
-        // Remove from unassigned officers list if dragged from sidebar
         if (source === 'officer-sidebar') {
             setUnassignedOfficers(prev => prev.filter(o => o.id !== member.id));
         }
     };
 
-    // Remove officer from a month slot back to unassigned list
     const handleRemoveOfficer = (officerId, monthId) => {
         const targetSlot = schedule.find(s => s.monthId === monthId);
         if (targetSlot && targetSlot.officer) {
@@ -126,7 +273,6 @@ const SafetyPatrolApp = () => {
         }));
     };
 
-    // Remove general member from calendar back to list
     const handleRemoveMember = (memberId, monthId) => {
         const currentSlot = schedule.find(s => s.monthId === monthId);
         let memberToRestore = null;
@@ -153,14 +299,11 @@ const SafetyPatrolApp = () => {
         try {
             const data = await parseCSV(file);
             setMembers(data);
-
             const newOfficers = data.filter(m => m.type === 'officer');
             const newGeneral = data.filter(m => m.type === 'general');
-
             setOfficers(newOfficers);
             setGeneralMembers(newGeneral);
             setUnassignedOfficers([...newOfficers]);
-
             alert(`読み込み完了: 全${data.length}件 (役員: ${newOfficers.length}件, 一般: ${newGeneral.length}件)`);
         } catch (error) {
             console.error("Failed to parse CSV", error);
@@ -190,7 +333,6 @@ const SafetyPatrolApp = () => {
                 setOfficers(newOfficers);
                 setGeneralMembers(newGeneral);
                 setUnassignedOfficers([...newOfficers]);
-
                 alert(`読み込み完了: 全${data.length}件 (役員: ${newOfficers.length}件, 一般: ${newGeneral.length}件)`);
             } catch (error) {
                 console.error(error);
@@ -238,45 +380,25 @@ const SafetyPatrolApp = () => {
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
-
                 if (!data.schedule || !Array.isArray(data.schedule)) {
                     alert('無効なJSONファイルです。');
                     return;
                 }
 
-                // Restore fiscal year
-                if (data.fiscalYear) {
-                    setFiscalYear(data.fiscalYear);
-                }
-
-                // Restore schedule
+                if (data.fiscalYear) setFiscalYear(data.fiscalYear);
                 setSchedule(data.schedule);
+                if (data.unassignedOfficers) setUnassignedOfficers(data.unassignedOfficers);
+                if (data.generalMembers) setGeneralMembers(data.generalMembers);
 
-                // Restore unassigned officers
-                if (data.unassignedOfficers) {
-                    setUnassignedOfficers(data.unassignedOfficers);
-                }
-
-                // Restore general members
-                if (data.generalMembers) {
-                    setGeneralMembers(data.generalMembers);
-                }
-
-                // Reconstruct full members list from all sources
                 const allMembers = new Map();
-                if (data.generalMembers) {
-                    data.generalMembers.forEach(m => allMembers.set(m.id, m));
-                }
-                if (data.unassignedOfficers) {
-                    data.unassignedOfficers.forEach(m => allMembers.set(m.id, m));
-                }
+                if (data.generalMembers) data.generalMembers.forEach(m => allMembers.set(m.id, m));
+                if (data.unassignedOfficers) data.unassignedOfficers.forEach(m => allMembers.set(m.id, m));
                 data.schedule.forEach(slot => {
                     if (slot.officer) allMembers.set(slot.officer.id, slot.officer);
                     slot.members.forEach(m => allMembers.set(m.id, m));
                 });
                 setMembers(Array.from(allMembers.values()));
                 setOfficers(Array.from(allMembers.values()).filter(m => m.type === 'officer'));
-
                 alert('計画データを読み込みました。');
             } catch (err) {
                 console.error('JSON import error:', err);
@@ -284,9 +406,19 @@ const SafetyPatrolApp = () => {
             }
         };
         reader.readAsText(file);
-        // Reset input so same file can be re-imported
         event.target.value = '';
     };
+
+    // --- Filtered members for search ---
+    const filteredGeneralMembers = searchQuery
+        ? generalMembers.filter(m =>
+            m.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        : generalMembers;
+
+    // --- Year options for dropdown ---
+    const yearOptions = [];
+    for (let y = 2024; y <= 2030; y++) yearOptions.push(y);
 
     return (
         <DndProvider backend={HTML5Backend}>
@@ -330,28 +462,59 @@ const SafetyPatrolApp = () => {
                                 {/* Sidebar */}
                                 <div>
                                     <div className="sticky top-4">
-                                        {/* Toolbar */}
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginBottom: '12px' }}>
+                                        {/* Toolbar Row 1 */}
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginBottom: '8px' }}>
                                             <span className="text-sm font-bold" style={{ color: '#1e40af', marginRight: '4px' }}>計: {members.length}社</span>
+
+                                            {/* Year Selector */}
+                                            <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+                                                <select
+                                                    value={fiscalYear}
+                                                    onChange={(e) => handleFiscalYearChange(Number(e.target.value))}
+                                                    style={{
+                                                        appearance: 'none',
+                                                        background: '#f3f4f6',
+                                                        border: '1px solid #d1d5db',
+                                                        borderRadius: '4px',
+                                                        padding: '3px 22px 3px 8px',
+                                                        fontSize: '11px',
+                                                        fontWeight: 'bold',
+                                                        cursor: 'pointer',
+                                                        color: '#1f2937',
+                                                    }}
+                                                >
+                                                    {yearOptions.map(y => (
+                                                        <option key={y} value={y}>{y}年度</option>
+                                                    ))}
+                                                </select>
+                                                <ChevronDown size={12} style={{ position: 'absolute', right: '6px', pointerEvents: 'none', color: '#6b7280' }} />
+                                            </div>
+                                        </div>
+
+                                        {/* Toolbar Row 2: Action buttons */}
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px', alignItems: 'center', marginBottom: '10px' }}>
                                             <button
                                                 onClick={() => window.print()}
-                                                className="bg-gray-800 text-white px-3 py-1 rounded text-xs flex items-center gap-1"
+                                                className="toolbar-btn"
+                                                style={{ background: '#1f2937', color: '#fff' }}
                                                 title="印刷プレビュー"
                                             >
-                                                <Calendar size={14} /> 印刷
+                                                <Calendar size={13} /> 印刷
                                             </button>
                                             <button
                                                 onClick={handleExportJSON}
-                                                style={{ background: '#059669', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', border: 'none', cursor: 'pointer' }}
+                                                className="toolbar-btn"
+                                                style={{ background: '#059669', color: '#fff' }}
                                                 title="計画をJSONファイルに保存"
                                             >
-                                                <Download size={14} /> 保存
+                                                <Download size={13} /> 保存
                                             </button>
                                             <label
-                                                style={{ background: '#2563eb', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                                                className="toolbar-btn"
+                                                style={{ background: '#2563eb', color: '#fff' }}
                                                 title="JSONファイルから計画を読み込み"
                                             >
-                                                <FolderOpen size={14} /> 読込
+                                                <FolderOpen size={13} /> 読込
                                                 <input
                                                     type="file"
                                                     accept=".json"
@@ -359,6 +522,32 @@ const SafetyPatrolApp = () => {
                                                     onChange={handleImportJSON}
                                                 />
                                             </label>
+                                            <button
+                                                onClick={handleUndo}
+                                                disabled={!canUndo}
+                                                className="toolbar-btn"
+                                                style={{
+                                                    background: canUndo ? '#6b7280' : '#e5e7eb',
+                                                    color: canUndo ? '#fff' : '#9ca3af',
+                                                    cursor: canUndo ? 'pointer' : 'not-allowed',
+                                                }}
+                                                title="元に戻す (Ctrl+Z)"
+                                            >
+                                                <Undo2 size={13} />
+                                            </button>
+                                            <button
+                                                onClick={handleRedo}
+                                                disabled={!canRedo}
+                                                className="toolbar-btn"
+                                                style={{
+                                                    background: canRedo ? '#6b7280' : '#e5e7eb',
+                                                    color: canRedo ? '#fff' : '#9ca3af',
+                                                    cursor: canRedo ? 'pointer' : 'not-allowed',
+                                                }}
+                                                title="やり直し (Ctrl+Shift+Z)"
+                                            >
+                                                <Redo2 size={13} />
+                                            </button>
                                         </div>
 
                                         {/* Officer list */}
@@ -374,17 +563,50 @@ const SafetyPatrolApp = () => {
                                             )}
                                         </div>
 
-                                        {/* General member list */}
+                                        {/* General member list with search */}
                                         <h3 className="list-header" style={{ color: '#1e40af', borderColor: '#bfdbfe', backgroundColor: '#eff6ff' }}>
                                             未割り当て会員 ({generalMembers.length})
                                         </h3>
-                                        <div className="member-list-container" style={{ height: 'calc(100vh - 420px)', overflowY: 'auto' }}>
+                                        {/* Search box */}
+                                        <div style={{ position: 'relative', marginBottom: '6px' }}>
+                                            <Search size={14} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: '#9ca3af' }} />
+                                            <input
+                                                type="text"
+                                                placeholder="会員名で検索..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
+                                                style={{
+                                                    width: '100%',
+                                                    padding: '5px 8px 5px 28px',
+                                                    border: '1px solid #d1d5db',
+                                                    borderRadius: '6px',
+                                                    fontSize: '12px',
+                                                    outline: 'none',
+                                                    boxSizing: 'border-box',
+                                                }}
+                                            />
+                                            {searchQuery && (
+                                                <button
+                                                    onClick={() => setSearchQuery('')}
+                                                    style={{
+                                                        position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)',
+                                                        background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '14px',
+                                                    }}
+                                                >✕</button>
+                                            )}
+                                        </div>
+                                        <div className="member-list-container" style={{ height: 'calc(100vh - 520px)', overflowY: 'auto' }}>
                                             <ul className="member-list space-y-1">
-                                                {generalMembers.map(m => (
+                                                {filteredGeneralMembers.map(m => (
                                                     <li key={m.id}>
                                                         <DraggableMember member={m} source="sidebar" />
                                                     </li>
                                                 ))}
+                                                {searchQuery && filteredGeneralMembers.length === 0 && (
+                                                    <li style={{ padding: '12px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>
+                                                        該当なし
+                                                    </li>
+                                                )}
                                             </ul>
                                         </div>
                                     </div>
@@ -402,6 +624,8 @@ const SafetyPatrolApp = () => {
                                                 onDropOfficer={handleDropOfficer}
                                                 removeMember={handleRemoveMember}
                                                 removeOfficer={handleRemoveOfficer}
+                                                onNoteChange={handleNoteChange}
+                                                maxMembers={MAX_MEMBERS_PER_MONTH}
                                             />
                                         ))}
                                     </div>

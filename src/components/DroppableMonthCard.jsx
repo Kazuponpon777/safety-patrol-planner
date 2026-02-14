@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { ITEM_TYPE } from './DraggableMember';
 import DraggableMember from './DraggableMember';
 
 const OFFICER_ITEM_TYPE = 'OFFICER';
 
-const DroppableMonthCard = ({ slot, onDateChange, onDropMember, onDropOfficer, removeMember, removeOfficer }) => {
+const DroppableMonthCard = ({ slot, onDateChange, onDropMember, onDropOfficer, removeMember, removeOfficer, onNoteChange, maxMembers = 5 }) => {
+    const [isEditingNote, setIsEditingNote] = useState(false);
+
     // Drop zone for general members
     const [{ isOver, canDrop }, drop] = useDrop(() => ({
         accept: ITEM_TYPE,
@@ -28,6 +30,7 @@ const DroppableMonthCard = ({ slot, onDateChange, onDropMember, onDropOfficer, r
 
     const isActive = canDrop && isOver;
     const isOfficerActive = canDropOfficer && isOfficerOver;
+    const isOverLimit = slot.members.length > maxMembers;
     const containerClass = `role-slot member-slot-container transition-colors ${isActive ? 'bg-blue-100 border-blue-300' : ''}`;
     const officerContainerClass = `role-slot officer-slot transition-colors ${isOfficerActive ? 'bg-orange-100 border-orange-300' : ''}`;
 
@@ -69,7 +72,10 @@ const DroppableMonthCard = ({ slot, onDateChange, onDropMember, onDropOfficer, r
 
             {/* General members drop zone */}
             <div ref={drop} className={containerClass} style={{ minHeight: '100px' }}>
-                <div className="slot-label">班員 ({slot.members.length}社)</div>
+                <div className="slot-label" style={isOverLimit ? { color: '#dc2626' } : {}}>
+                    班員 ({slot.members.length}社)
+                    {isOverLimit && <span style={{ marginLeft: '4px', fontSize: '10px', color: '#dc2626' }}>⚠ {maxMembers}社推奨</span>}
+                </div>
 
                 {slot.members.length === 0 ? (
                     <div className="empty-slot-placeholder py-4">ドラッグ＆ドロップ</div>
@@ -91,6 +97,34 @@ const DroppableMonthCard = ({ slot, onDateChange, onDropMember, onDropOfficer, r
                                 </button>
                             </div>
                         ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Notes section */}
+            <div className="note-section">
+                {isEditingNote ? (
+                    <input
+                        type="text"
+                        value={slot.note || ''}
+                        onChange={(e) => onNoteChange(slot.monthId, e.target.value)}
+                        onBlur={() => setIsEditingNote(false)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') setIsEditingNote(false); }}
+                        autoFocus
+                        placeholder="備考を入力..."
+                        className="note-input"
+                    />
+                ) : (
+                    <div
+                        className="note-display"
+                        onClick={() => setIsEditingNote(true)}
+                        title="クリックして備考を編集"
+                    >
+                        {slot.note ? (
+                            <span style={{ fontSize: '11px', color: '#374151' }}>{slot.note}</span>
+                        ) : (
+                            <span style={{ fontSize: '11px', color: '#9ca3af' }}>📝 備考</span>
+                        )}
                     </div>
                 )}
             </div>

@@ -296,3 +296,216 @@ body {
     text-align: center;
     padding: 0.5rem;
 }
+
+/* Toolbar Buttons */
+.toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    line-height: 1.4;
+}
+
+.toolbar-btn:hover {
+    opacity: 0.85;
+}
+
+/* Note Section */
+.note-section {
+    margin-top: 6px;
+    border-top: 1px solid #f3f4f6;
+    padding-top: 6px;
+}
+
+.note-display {
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    min-height: 22px;
+    transition: background-color 0.15s;
+}
+
+.note-display:hover {
+    background-color: #f3f4f6;
+}
+
+.note-input {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid #93c5fd;
+    border-radius: 4px;
+    font-size: 11px;
+    outline: none;
+    box-sizing: border-box;
+    background-color: #eff6ff;
+}
+
+.note-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+/* Officer Name Tag */
+.officer-name-tag {
+    font-size: 0.8rem;
+    color: #9a3412;
+    background-color: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 4px;
+    padding: 3px 6px;
+}
+
+/* List Header */
+.list-header {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    padding: 6px 10px;
+    border: 1px solid;
+    border-radius: 6px;
+}
+
+/* Sticky sidebar */
+.sticky {
+    position: sticky;
+}
+
+.top-4 {
+    top: 1rem;
+}
+
+/* Group hover utilities (for remove buttons) */
+.group:hover .hidden {
+    display: block !important;
+}
+
+.relative {
+    position: relative;
+}
+
+.absolute {
+    position: absolute;
+}
+
+.hidden {
+    display: none;
+}
+
+/* Spacing utilities */
+.space-y-1>*+* {
+    margin-top: 0.25rem;
+}
+
+.py-4 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.gap-1 {
+    gap: 0.25rem;
+}
+
+/* Flex utilities */
+.flex {
+    display: flex;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.text-xs {
+    font-size: 0.75rem;
+}
+
+.font-bold {
+    font-weight: 700;
+}
+
+.font-semibold {
+    font-weight: 600;
+}
+
+.truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rounded {
+    border-radius: 0.25rem;
+}
+
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.border {
+    border: 1px solid #e5e7eb;
+}
+
+.px-1 {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+
+.px-2 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+.px-3 {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+
+.py-1 {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+}
+
+.bg-gray-800 {
+    background-color: #1f2937;
+}
+
+.text-white {
+    color: white;
+}
+
+.cursor-move {
+    cursor: grab;
+}
+
+.transition-colors {
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.bg-blue-100 {
+    background-color: #dbeafe;
+}
+
+.border-blue-300 {
+    border-color: #93c5fd;
+}
+
+.bg-orange-100 {
+    background-color: #ffedd5;
+}
+
+.border-orange-300 {
+    border-color: #fdba74;
+}
