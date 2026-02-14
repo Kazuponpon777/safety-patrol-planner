@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { parseCSV } from '../utils/csvParser';
 import { generateFiscalYearSchedule, getDayOfWeek, assignOfficersToSchedule } from '../utils/scheduleGenerator';
-import { Upload, Calendar, User } from 'lucide-react';
+import { Upload, Calendar, User, Download, FolderOpen } from 'lucide-react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import DraggableMember from './DraggableMember';
@@ -199,6 +199,95 @@ const SafetyPatrolApp = () => {
         }
     };
 
+    // --- JSON Export ---
+    const handleExportJSON = () => {
+        const exportData = {
+            version: 1,
+            exportDate: new Date().toISOString(),
+            fiscalYear,
+            schedule: schedule.map(slot => ({
+                monthId: slot.monthId,
+                month: slot.month,
+                date: slot.date,
+                dayOfWeek: slot.dayOfWeek,
+                officer: slot.officer || null,
+                members: slot.members || [],
+                note: slot.note || '',
+            })),
+            unassignedOfficers,
+            generalMembers,
+        };
+
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `safety-patrol-${fiscalYear}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    // --- JSON Import ---
+    const handleImportJSON = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+
+                if (!data.schedule || !Array.isArray(data.schedule)) {
+                    alert('無効なJSONファイルです。');
+                    return;
+                }
+
+                // Restore fiscal year
+                if (data.fiscalYear) {
+                    setFiscalYear(data.fiscalYear);
+                }
+
+                // Restore schedule
+                setSchedule(data.schedule);
+
+                // Restore unassigned officers
+                if (data.unassignedOfficers) {
+                    setUnassignedOfficers(data.unassignedOfficers);
+                }
+
+                // Restore general members
+                if (data.generalMembers) {
+                    setGeneralMembers(data.generalMembers);
+                }
+
+                // Reconstruct full members list from all sources
+                const allMembers = new Map();
+                if (data.generalMembers) {
+                    data.generalMembers.forEach(m => allMembers.set(m.id, m));
+                }
+                if (data.unassignedOfficers) {
+                    data.unassignedOfficers.forEach(m => allMembers.set(m.id, m));
+                }
+                data.schedule.forEach(slot => {
+                    if (slot.officer) allMembers.set(slot.officer.id, slot.officer);
+                    slot.members.forEach(m => allMembers.set(m.id, m));
+                });
+                setMembers(Array.from(allMembers.values()));
+                setOfficers(Array.from(allMembers.values()).filter(m => m.type === 'officer'));
+
+                alert('計画データを読み込みました。');
+            } catch (err) {
+                console.error('JSON import error:', err);
+                alert('JSONファイルの読み込みに失敗しました。');
+            }
+        };
+        reader.readAsText(file);
+        // Reset input so same file can be re-imported
+        event.target.value = '';
+    };
+
     return (
         <DndProvider backend={HTML5Backend}>
             <div className="container">
@@ -242,14 +331,34 @@ const SafetyPatrolApp = () => {
                                 <div>
                                     <div className="sticky top-4">
                                         {/* Toolbar */}
-                                        <div className="flex gap-2 items-center mb-3">
-                                            <span className="text-sm font-bold" style={{ color: '#1e40af' }}>計: {members.length}社</span>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginBottom: '12px' }}>
+                                            <span className="text-sm font-bold" style={{ color: '#1e40af', marginRight: '4px' }}>計: {members.length}社</span>
                                             <button
                                                 onClick={() => window.print()}
                                                 className="bg-gray-800 text-white px-3 py-1 rounded text-xs flex items-center gap-1"
+                                                title="印刷プレビュー"
                                             >
                                                 <Calendar size={14} /> 印刷
                                             </button>
+                                            <button
+                                                onClick={handleExportJSON}
+                                                style={{ background: '#059669', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', border: 'none', cursor: 'pointer' }}
+                                                title="計画をJSONファイルに保存"
+                                            >
+                                                <Download size={14} /> 保存
+                                            </button>
+                                            <label
+                                                style={{ background: '#2563eb', color: '#fff', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                                                title="JSONファイルから計画を読み込み"
+                                            >
+                                                <FolderOpen size={14} /> 読込
+                                                <input
+                                                    type="file"
+                                                    accept=".json"
+                                                    style={{ display: 'none' }}
+                                                    onChange={handleImportJSON}
+                                                />
+                                            </label>
                                         </div>
 
                                         {/* Officer list */}
