@@ -234,13 +234,12 @@ const SafetyPatrolApp = () => {
     const handleDropOfficer = (item, targetMonthId) => {
         const { member, source, monthId: sourceMonthId } = item;
 
+        // Prevent assigning the same officer to the same month
+        const targetSlot = schedule.find(s => s.monthId === targetMonthId);
+        if (targetSlot && targetSlot.officer && targetSlot.officer.id === member.id) return;
+
         setSchedule(prev => prev.map(slot => {
             if (slot.monthId === targetMonthId) {
-                if (slot.officer && slot.officer.id === member.id) return slot;
-                const previousOfficer = slot.officer;
-                if (previousOfficer) {
-                    // handled below
-                }
                 return { ...slot, officer: member };
             }
             if (source === 'officer-slot' && slot.monthId === sourceMonthId) {
@@ -249,22 +248,11 @@ const SafetyPatrolApp = () => {
             return slot;
         }));
 
-        // Handle displaced officer
-        const targetSlot = schedule.find(s => s.monthId === targetMonthId);
-        if (targetSlot && targetSlot.officer && targetSlot.officer.id !== member.id) {
-            setUnassignedOfficers(prev => [...prev, targetSlot.officer]);
-        }
-
-        if (source === 'officer-sidebar') {
-            setUnassignedOfficers(prev => prev.filter(o => o.id !== member.id));
-        }
+        // Note: Officers are NOT removed from the sidebar list.
+        // They remain available for assignment to other months.
     };
 
     const handleRemoveOfficer = (officerId, monthId) => {
-        const targetSlot = schedule.find(s => s.monthId === monthId);
-        if (targetSlot && targetSlot.officer) {
-            setUnassignedOfficers(prev => [...prev, targetSlot.officer]);
-        }
         setSchedule(prev => prev.map(slot => {
             if (slot.monthId === monthId) {
                 return { ...slot, officer: null };
@@ -416,6 +404,11 @@ const SafetyPatrolApp = () => {
         )
         : generalMembers;
 
+    // --- Count officer assignments from schedule ---
+    const getOfficerAssignCount = (officerId) => {
+        return schedule.filter(slot => slot.officer && slot.officer.id === officerId).length;
+    };
+
     // --- Year options for dropdown ---
     const yearOptions = [];
     for (let y = 2024; y <= 2030; y++) yearOptions.push(y);
@@ -550,17 +543,19 @@ const SafetyPatrolApp = () => {
                                             </button>
                                         </div>
 
-                                        {/* Officer list */}
+                                        {/* Officer list - always show all officers */}
                                         <h3 className="list-header" style={{ color: '#c2410c', borderColor: '#fed7aa', backgroundColor: '#fff7ed' }}>
-                                            ⭐ 役員 ({unassignedOfficers.length})
+                                            ⭐ 役員 ({officers.length}名)
                                         </h3>
-                                        <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '12px' }}>
-                                            {unassignedOfficers.map(m => (
-                                                <DraggableOfficer key={m.id} member={m} source="officer-sidebar" />
+                                        <div style={{ maxHeight: '240px', overflowY: 'auto', marginBottom: '12px' }}>
+                                            {officers.map(m => (
+                                                <DraggableOfficer
+                                                    key={m.id}
+                                                    member={m}
+                                                    source="officer-sidebar"
+                                                    assignCount={getOfficerAssignCount(m.id)}
+                                                />
                                             ))}
-                                            {unassignedOfficers.length === 0 && (
-                                                <div className="text-xs" style={{ color: '#9ca3af', padding: '8px', textAlign: 'center' }}>全員割り当て済み</div>
-                                            )}
                                         </div>
 
                                         {/* General member list with search */}
