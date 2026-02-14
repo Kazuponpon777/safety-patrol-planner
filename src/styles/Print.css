@@ -14,7 +14,7 @@
 @media print {
     @page {
         size: A4 landscape;
-        margin: 8mm 10mm;
+        margin: 6mm 10mm;
     }
 
     /* Hide everything except print layout */
@@ -54,13 +54,13 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 6px;
-        padding: 0 4px;
+        margin-bottom: 8px;
+        padding: 4px 4px 0;
     }
 
     .print-header-left {
-        font-size: 9pt;
-        line-height: 1.5;
+        font-size: 10pt;
+        line-height: 1.6;
         text-align: left;
     }
 
@@ -70,17 +70,17 @@
     }
 
     .print-header-center h1 {
-        font-size: 16pt;
+        font-size: 18pt;
         font-weight: bold;
-        letter-spacing: 4px;
+        letter-spacing: 6px;
         margin: 0;
-        padding: 0;
+        padding: 4px 0;
     }
 
     .print-header-right {
-        font-size: 10pt;
+        font-size: 11pt;
         text-align: right;
-        line-height: 1.5;
+        line-height: 1.6;
     }
 
     /* ---- TABLE ---- */
@@ -100,11 +100,11 @@
 
     .print-th {
         border: 1px solid #333;
-        padding: 4px 2px;
+        padding: 6px 4px;
         text-align: center;
         color: #ffffff;
         font-weight: bold;
-        font-size: 9pt;
+        font-size: 10pt;
         vertical-align: middle;
     }
 
@@ -115,35 +115,35 @@
     /* Table cells */
     .print-cell {
         border: 1px solid #333;
-        padding: 4px 4px;
+        padding: 8px 4px;
         text-align: center;
         vertical-align: middle;
-        font-size: 8.5pt;
-        height: 28px;
+        font-size: 9pt;
+        height: 38px;
     }
 
     .print-date-cell {
         font-weight: bold;
-        font-size: 9pt;
+        font-size: 10pt;
     }
 
     .print-day-cell {
-        font-size: 8.5pt;
+        font-size: 9pt;
     }
 
     .print-officer-cell {
         font-weight: 600;
-        font-size: 8pt;
+        font-size: 8.5pt;
     }
 
     .print-member-cell {
-        font-size: 7.5pt;
+        font-size: 8pt;
         text-align: center;
         word-break: break-all;
     }
 
     .print-remarks-cell {
-        font-size: 7.5pt;
+        font-size: 8pt;
     }
 
     /* Year sidebar cells */
@@ -152,9 +152,9 @@
         text-align: center;
         vertical-align: middle;
         font-weight: bold;
-        font-size: 9pt;
+        font-size: 10pt;
         width: 40px;
-        padding: 2px;
+        padding: 4px;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -162,7 +162,7 @@
     .print-year-text {
         writing-mode: vertical-rl;
         text-orientation: mixed;
-        letter-spacing: 2px;
+        letter-spacing: 4px;
     }
 
     .print-year-cell.year-first {
@@ -178,9 +178,9 @@
         display: flex;
         justify-content: space-between;
         align-items: flex-end;
-        margin-top: 8px;
+        margin-top: 12px;
         padding: 0 4px;
-        font-size: 8pt;
+        font-size: 9pt;
     }
 
     .print-footer-left {
@@ -188,12 +188,12 @@
     }
 
     .print-footer-line {
-        line-height: 1.6;
+        line-height: 1.8;
     }
 
     .print-footer-right {
         text-align: right;
-        font-size: 9pt;
+        font-size: 10pt;
         font-weight: bold;
     }
 
