@@ -1,0 +1,298 @@
+/* Basic Reset & Typography */
+body {
+    margin: 0;
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    background-color: #f9fafb;
+    color: #1f2937;
+}
+
+/* Layout Utilities */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+.mb-6 {
+    margin-bottom: 1.5rem;
+}
+
+.mb-8 {
+    margin-bottom: 2rem;
+}
+
+.mt-1 {
+    margin-top: 0.25rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
+
+.mt-6 {
+    margin-top: 1.5rem;
+}
+
+/* Header */
+.app-title {
+    font-size: 1.875rem;
+    font-weight: 700;
+    color: #111827;
+}
+
+.app-subtitle {
+    color: #4b5563;
+}
+
+/* Upload Area */
+.upload-area {
+    max-width: 36rem;
+    margin: 0 auto;
+    border: 2px dashed #d1d5db;
+    border-radius: 0.75rem;
+    padding: 3rem;
+    text-align: center;
+    transition: all 0.2s;
+    background-color: white;
+    cursor: default;
+}
+
+.upload-area.dragging {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+}
+
+.upload-icon-wrapper {
+    display: inline-flex;
+    padding: 1rem;
+    background-color: #dbeafe;
+    color: #2563eb;
+    border-radius: 9999px;
+    margin-bottom: 1rem;
+}
+
+.upload-text-main {
+    font-size: 1.125rem;
+    font-weight: 500;
+    color: #111827;
+}
+
+.upload-text-sub {
+    font-size: 0.875rem;
+    color: #6b7280;
+}
+
+.upload-button {
+    display: inline-block;
+    background-color: #2563eb;
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    margin-top: 1rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.upload-button:hover {
+    background-color: #1d4ed8;
+}
+
+.upload-note {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 1rem;
+}
+
+/* Dashboard */
+.dashboard-card {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.5rem;
+}
+
+.grid-2-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.list-header {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.text-blue {
+    color: #2563eb;
+}
+
+.text-green {
+    color: #059669;
+}
+
+.member-list-container {
+    background-color: #f3f4f6;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    height: 16rem;
+    overflow-y: auto;
+}
+
+.member-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.member-item {
+    font-size: 0.875rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.25rem;
+    padding-top: 0.25rem;
+}
+
+.member-item:last-child {
+    border-bottom: none;
+}
+
+.role-badge {
+    font-family: monospace;
+    font-size: 0.75rem;
+    color: #6b7280;
+    margin-right: 0.5rem;
+}
+
+.reset-button {
+    font-size: 0.875rem;
+    color: #ef4444;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.reset-button:hover {
+    color: #b91c1c;
+}
+
+.placeholder-area {
+    text-align: center;
+    color: #9ca3af;
+    padding: 3rem;
+    border: 2px dashed #e5e7eb;
+    border-radius: 0.5rem;
+}
+
+/* Schedule Grid */
+.schedule-container {
+    margin-top: 2rem;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.schedule-card {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.schedule-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #f3f4f6;
+    padding-bottom: 0.5rem;
+}
+
+.month-label {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #111827;
+}
+
+.date-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.date-input {
+    border: 1px solid #d1d5db;
+    border-radius: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.day-badge {
+    background-color: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.role-slot {
+    margin-bottom: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    background-color: #f9fafb;
+    border: 1px dashed #d1d5db;
+    min-height: 2.5rem;
+}
+
+.officer-slot {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.member-slot-container {
+    background-color: #fcfdf5;
+    /* slightly greenish/yellowish */
+    border-color: #e5e7eb;
+    min-height: 5rem;
+}
+
+.slot-label {
+    font-size: 0.7rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
+.empty-slot-placeholder {
+    font-size: 0.8rem;
+    color: #9ca3af;
+    text-align: center;
+    padding: 0.5rem;
+}
