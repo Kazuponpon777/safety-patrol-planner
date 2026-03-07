@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { parseCSV } from '../utils/csvParser';
 import { generateFiscalYearSchedule, getDayOfWeek, assignOfficersToSchedule } from '../utils/scheduleGenerator';
-import { Upload, Calendar, User, Download, FolderOpen, Search, Undo2, Redo2, ChevronDown } from 'lucide-react';
+import { Upload, Calendar, User, Download, FolderOpen, Search, Undo2, Redo2, ChevronDown, RefreshCw } from 'lucide-react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import DraggableMember from './DraggableMember';
@@ -69,6 +69,10 @@ const SafetyPatrolApp = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [isInitialized, setIsInitialized] = useState(false);
 
+    // Safety Committee Names
+    const [chairmanName, setChairmanName] = useState('西岡眞司');
+    const [viceChairmanName, setViceChairmanName] = useState('伊中成篤');
+
     const { pushState, undo, redo, canUndo, canRedo } = useUndoRedo();
 
     // --- Snapshot helper for undo ---
@@ -127,6 +131,8 @@ const SafetyPatrolApp = () => {
             generalMembers,
             members,
             officers,
+            chairmanName,
+            viceChairmanName,
         };
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
@@ -141,6 +147,8 @@ const SafetyPatrolApp = () => {
         if (saved) {
             try {
                 const data = JSON.parse(saved);
+                if (data.chairmanName) setChairmanName(data.chairmanName);
+                if (data.viceChairmanName) setViceChairmanName(data.viceChairmanName);
                 if (data.schedule && data.schedule.length > 0) {
                     setFiscalYear(data.fiscalYear || 2026);
                     setSchedule(data.schedule);
@@ -296,6 +304,19 @@ const SafetyPatrolApp = () => {
         } catch (error) {
             console.error("Failed to parse CSV", error);
             alert("CSVの読み込みに失敗しました。");
+        }
+    };
+
+    const handleResetAll = () => {
+        if (window.confirm("すべての割り当てデータと名簿をリセットしますか？この操作は取り消せません。")) {
+            localStorage.removeItem(STORAGE_KEY);
+            setMembers([]);
+            setOfficers([]);
+            setGeneralMembers([]);
+            setUnassignedOfficers([]);
+            setSchedule(generateFiscalYearSchedule(fiscalYear));
+            setChairmanName('西岡眞司');
+            setViceChairmanName('伊中成篤');
         }
     };
 
@@ -459,6 +480,14 @@ const SafetyPatrolApp = () => {
                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', alignItems: 'center', marginBottom: '8px' }}>
                                             <span className="text-sm font-bold" style={{ color: '#1e40af', marginRight: '4px' }}>計: {members.length}社</span>
 
+                                            <button
+                                                onClick={handleResetAll}
+                                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center', fontSize: '11px', padding: '0 4px' }}
+                                                title="データを全クリアして名簿を再読み込み"
+                                            >
+                                                <RefreshCw size={12} style={{ marginRight: '2px' }} /> クリア
+                                            </button>
+
                                             {/* Year Selector */}
                                             <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
                                                 <select
@@ -541,6 +570,37 @@ const SafetyPatrolApp = () => {
                                             >
                                                 <Redo2 size={13} />
                                             </button>
+                                        </div>
+
+                                        {/* Settings Row */}
+                                        <div style={{
+                                            marginBottom: '12px',
+                                            padding: '8px',
+                                            background: '#f8fafc',
+                                            border: '1px solid #e2e8f0',
+                                            borderRadius: '6px',
+                                            display: 'grid',
+                                            gridTemplateColumns: '1fr 1fr',
+                                            gap: '8px'
+                                        }}>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '10px', color: '#64748b', fontWeight: 'bold', marginBottom: '2px' }}>安全委員長 (印刷用)</label>
+                                                <input
+                                                    type="text"
+                                                    value={chairmanName}
+                                                    onChange={e => setChairmanName(e.target.value)}
+                                                    style={{ width: '100%', fontSize: '12px', padding: '4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                                                />
+                                            </div>
+                                            <div>
+                                                <label style={{ display: 'block', fontSize: '10px', color: '#64748b', fontWeight: 'bold', marginBottom: '2px' }}>安全副委員長 (印刷用)</label>
+                                                <input
+                                                    type="text"
+                                                    value={viceChairmanName}
+                                                    onChange={e => setViceChairmanName(e.target.value)}
+                                                    style={{ width: '100%', fontSize: '12px', padding: '4px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                                                />
+                                            </div>
                                         </div>
 
                                         {/* Officer list - always show all officers */}
@@ -632,7 +692,12 @@ const SafetyPatrolApp = () => {
             </div>
 
             {/* Print Layout (Invisible on screen) */}
-            <PrintLayout fiscalYear={fiscalYear} schedule={schedule} />
+            <PrintLayout
+                fiscalYear={fiscalYear}
+                schedule={schedule}
+                chairmanName={chairmanName}
+                viceChairmanName={viceChairmanName}
+            />
         </DndProvider>
     );
 };

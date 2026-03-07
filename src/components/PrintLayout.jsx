@@ -1,7 +1,7 @@
 import React from 'react';
 import { format } from 'date-fns';
 
-const PrintLayout = ({ fiscalYear, schedule }) => {
+const PrintLayout = ({ fiscalYear, schedule, chairmanName = '西岡眞司', viceChairmanName = '伊中成篤' }) => {
     // Group schedule by year for the year sidebar
     const startYear = fiscalYear;
     const endYear = fiscalYear + 1;
@@ -82,7 +82,7 @@ const PrintLayout = ({ fiscalYear, schedule }) => {
             {/* Footer */}
             <div className="print-footer">
                 <div className="print-footer-left">
-                    <div className="print-footer-line">◇　安全委員長　　　　　　　　安全副委員長　　　　　　</div>
+                    <div className="print-footer-line">◇　安全委員長　　　{chairmanName}　　　安全副委員長　　　{viceChairmanName}</div>
                     <div className="print-footer-line">◇　上記日程表にもとづき、一週間前に連絡のこと。</div>
                     <div className="print-footer-line">◇　会員は安全パトロールに協力し、災害防止活動を推進すること。</div>
                     <div className="print-footer-line">◇　集合場所　八洲建設(株)　分室内　八親会室　午前11時00分までに集合のこと。</div>
